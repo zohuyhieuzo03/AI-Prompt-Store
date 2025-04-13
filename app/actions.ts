@@ -53,7 +53,7 @@ export const signInAction = async (formData: FormData) => {
     return encodedRedirect("error", "/sign-in", error.message);
   }
 
-  return redirect("/protected");
+  return redirect("/");
 };
 
 export const forgotPasswordAction = async (formData: FormData) => {
@@ -131,4 +131,48 @@ export const signOutAction = async () => {
   const supabase = await createClient();
   await supabase.auth.signOut();
   return redirect("/sign-in");
+};
+
+export const createPromptAction = async (formData: FormData) => {
+  const title = formData.get("title")?.toString();
+  const category = formData.get("category")?.toString();
+  const content = formData.get("prompt")?.toString();
+  const supabase = await createClient();
+
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return encodedRedirect(
+      "error",
+      "/new",
+      "You must be logged in to create a prompt"
+    );
+  }
+
+  if (!title || !category || !content) {
+    return encodedRedirect(
+      "error",
+      "/new",
+      "Title, category and content are required"
+    );
+  }
+
+  const { error } = await supabase.from("prompts").insert({
+    title,
+    category,
+    content,
+    user_id: user.id
+  });
+
+  if (error) {
+    console.error(error.message);
+    return encodedRedirect(
+      "error",
+      "/new",
+      "Failed to create prompt"
+    );
+  }
+
+  return redirect("/");
 };
