@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { ArrowLeft, Copy, Edit, Trash } from "lucide-react"
+import { ArrowLeft, Copy, Edit, Trash, ExternalLink } from "lucide-react"
 import { createClient } from "@/utils/supabase/client"
 import { useEffect, useState } from "react"
 import { format } from "date-fns"
+import { PromptParameterForm } from "@/components/prompt-parameter-form"
+import { useUser } from "@/app/hooks/use-user"
 
 interface Prompt {
   id: string
@@ -18,30 +20,54 @@ interface Prompt {
   user_id: string
 }
 
+interface GeneratedPrompt {
+  id: string
+  content: string
+  created_at: string
+}
+
 export default function PromptDetailPage({ params }: { params: { id: string } }) {
   const [prompt, setPrompt] = useState<Prompt | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [filledPrompt, setFilledPrompt] = useState("")
+  const [generatedPrompts, setGeneratedPrompts] = useState<GeneratedPrompt[]>([])
   const supabase = createClient()
+  const { user } = useUser()
 
   useEffect(() => {
-    async function fetchPrompt() {
-      const { data, error } = await supabase
+    async function fetchData() {
+      // Fetch prompt details
+      const { data: promptData, error: promptError } = await supabase
         .from("prompts")
         .select("*")
         .eq("id", params.id)
         .single()
 
-      if (error) {
-        console.error("Error fetching prompt:", error)
+      if (promptError) {
+        console.error("Error fetching prompt:", promptError)
         setIsLoading(false)
         return
       }
 
-      setPrompt(data)
+      setPrompt(promptData)
+
+      // Fetch generated prompts
+      const { data: generatedData, error: generatedError } = await supabase
+        .from("generated_prompts")
+        .select("*")
+        .eq("prompt_id", params.id)
+        .order("created_at", { ascending: false })
+
+      if (generatedError) {
+        console.error("Error fetching generated prompts:", generatedError)
+      } else {
+        setGeneratedPrompts(generatedData)
+      }
+
       setIsLoading(false)
     }
 
-    fetchPrompt()
+    fetchData()
   }, [params.id])
 
   if (isLoading) {
@@ -69,7 +95,7 @@ export default function PromptDetailPage({ params }: { params: { id: string } })
         </Link>
       </Button>
 
-      <Card className="max-w-3xl mx-auto">
+      <Card className="max-w-3xl mx-auto mb-6">
         <CardHeader>
           <div className="flex justify-between items-start">
             <div>
@@ -82,15 +108,21 @@ export default function PromptDetailPage({ params }: { params: { id: string } })
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
+          <PromptParameterForm 
+            promptContent={prompt.content}
+            promptId={prompt.id}
+            onFilledPromptChange={setFilledPrompt}
+          />
+
           <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">Content</h3>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">Generated Prompt</h3>
             <div className="bg-muted p-4 rounded-md relative group">
-              <p className="whitespace-pre-wrap">{prompt.content}</p>
+              <p className="whitespace-pre-wrap">{filledPrompt || prompt.content}</p>
               <Button
                 size="icon"
                 variant="ghost"
                 className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={() => navigator.clipboard.writeText(prompt.content)}
+                onClick={() => navigator.clipboard.writeText(filledPrompt || prompt.content)}
               >
                 <Copy className="h-4 w-4" />
                 <span className="sr-only">Copy content</span>
@@ -111,6 +143,35 @@ export default function PromptDetailPage({ params }: { params: { id: string } })
           </Button>
         </CardFooter>
       </Card>
+
+      {user && generatedPrompts.length > 0 && (
+        <Card className="max-w-3xl mx-auto">
+          <CardHeader>
+            <CardTitle>Generated Prompts History</CardTitle>
+            <CardDescription>Previously generated prompts for this template</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {generatedPrompts.map((generatedPrompt) => (
+                <div key={generatedPrompt.id} className="flex items-center justify-between p-4 bg-muted rounded-md">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-muted-foreground truncate">
+                      {format(new Date(generatedPrompt.created_at), "MMM d, yyyy 'at' h:mm a")}
+                    </p>
+                    <p className="text-sm truncate">{generatedPrompt.content}</p>
+                  </div>
+                  <Button size="sm" variant="outline" asChild>
+                    <Link href={`/generated-prompt/${generatedPrompt.id}`}>
+                      <ExternalLink className="h-4 w-4" />
+                      <span className="sr-only">View generated prompt</span>
+                    </Link>
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </main>
   )
 }

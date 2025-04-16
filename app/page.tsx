@@ -1,3 +1,5 @@
+"use client"
+
 import { Plus } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -5,46 +7,44 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import PromptCard from "@/components/prompt-card"
-import { createClient } from "@/utils/supabase/server"
+import { createBrowserClient } from "@supabase/ssr"
+import { useState, useEffect } from "react"
 
-// Sample data for demonstration
-const samplePrompts = [
-  {
-    id: "1",
-    title: "Creative Story Generator",
-    prompt: "Write a short story about a character who discovers they have the ability to talk to plants.",
-    category: "creative",
-    createdAt: "2023-11-10",
-  },
-  {
-    id: "2",
-    title: "Code Explanation",
-    prompt: "Explain how async/await works in JavaScript with simple examples.",
-    category: "technical",
-    createdAt: "2023-11-09",
-  },
-  {
-    id: "3",
-    title: "Marketing Copy",
-    prompt:
-      "Write a compelling product description for a new eco-friendly water bottle that keeps drinks cold for 24 hours.",
-    category: "marketing",
-    createdAt: "2023-11-08",
-  },
-  {
-    id: "4",
-    title: "Data Analysis Query",
-    prompt:
-      "Analyze this sales data and identify key trends and insights that could help improve our marketing strategy.",
-    category: "technical",
-    createdAt: "2023-11-07",
-  },
-]
+interface Prompt {
+  id: string
+  title: string
+  content: string
+  category: string
+  createdAt: string
+}
 
-export default async function Home() {
-  const supabase = await createClient();
-  const { data: prompts } = await supabase.from("prompts").select("*");
-  console.log(prompts);
+export default function Home() {
+  const [searchQuery, setSearchQuery] = useState("")
+  const [prompts, setPrompts] = useState<Prompt[]>([])
+  const [filteredPrompts, setFilteredPrompts] = useState<Prompt[]>([])
+
+  useEffect(() => {
+    const fetchPrompts = async () => {
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
+      const { data } = await supabase.from("prompts").select("*")
+      const transformedData = (data || []).map((item: any) => ({
+        ...item,
+      }))
+      setPrompts(transformedData)
+      setFilteredPrompts(transformedData)
+    }
+    fetchPrompts()
+  }, [])
+
+  useEffect(() => {
+    const filtered = prompts.filter((prompt) =>
+      prompt.title.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    setFilteredPrompts(filtered)
+  }, [searchQuery, prompts])
 
   return (
     <main className="container mx-auto py-6 px-4 md:px-6">
@@ -54,7 +54,12 @@ export default async function Home() {
           <p className="text-muted-foreground mt-1">Store, organize, and retrieve your AI prompts</p>
         </div>
         <div className="flex items-center gap-2 w-full md:w-auto">
-          <Input placeholder="Search prompts..." className="w-full md:w-[300px]" />
+          <Input 
+            placeholder="Search prompts..." 
+            className="w-full md:w-[300px]" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
           <Button asChild>
             <Link href="/new">
               <Plus className="mr-2 h-4 w-4" />
@@ -73,15 +78,15 @@ export default async function Home() {
         </TabsList>
         <TabsContent value="all" className="mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {prompts?.map((prompt) => (
+            {filteredPrompts.map((prompt) => (
               <PromptCard key={prompt.id} prompt={prompt} />
             ))}
           </div>
         </TabsContent>
         <TabsContent value="creative" className="mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {prompts
-              ?.filter((prompt) => prompt.category === "creative")
+            {filteredPrompts
+              .filter((prompt) => prompt.category === "creative")
               .map((prompt) => (
                 <PromptCard key={prompt.id} prompt={prompt} />
               ))}
@@ -89,8 +94,8 @@ export default async function Home() {
         </TabsContent>
         <TabsContent value="technical" className="mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {prompts
-              ?.filter((prompt) => prompt.category === "technical")
+            {filteredPrompts
+              .filter((prompt) => prompt.category === "technical")
               .map((prompt) => (
                 <PromptCard key={prompt.id} prompt={prompt} />
               ))}
@@ -98,8 +103,8 @@ export default async function Home() {
         </TabsContent>
         <TabsContent value="marketing" className="mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {prompts
-              ?.filter((prompt) => prompt.category === "marketing")
+            {filteredPrompts
+              .filter((prompt) => prompt.category === "marketing")
               .map((prompt) => (
                 <PromptCard key={prompt.id} prompt={prompt} />
               ))}
@@ -116,19 +121,19 @@ export default async function Home() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-muted rounded-lg p-4">
               <p className="text-sm font-medium">Total Prompts</p>
-              <p className="text-3xl font-bold">{prompts?.length}</p>
+              <p className="text-3xl font-bold">{filteredPrompts.length}</p>
             </div>
             <div className="bg-muted rounded-lg p-4">
               <p className="text-sm font-medium">Creative</p>
-              <p className="text-3xl font-bold">{prompts?.filter((p) => p.category === "creative").length}</p>
+              <p className="text-3xl font-bold">{filteredPrompts.filter((p) => p.category === "creative").length}</p>
             </div>
             <div className="bg-muted rounded-lg p-4">
               <p className="text-sm font-medium">Technical</p>
-              <p className="text-3xl font-bold">{prompts?.filter((p) => p.category === "technical").length}</p>
+              <p className="text-3xl font-bold">{filteredPrompts.filter((p) => p.category === "technical").length}</p>
             </div>
             <div className="bg-muted rounded-lg p-4">
               <p className="text-sm font-medium">Marketing</p>
-              <p className="text-3xl font-bold">{prompts?.filter((p) => p.category === "marketing").length}</p>
+              <p className="text-3xl font-bold">{filteredPrompts.filter((p) => p.category === "marketing").length}</p>
             </div>
           </div>
         </CardContent>
