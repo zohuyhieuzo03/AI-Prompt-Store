@@ -132,16 +132,20 @@ export default function PromptDetailPage({ params }: { params: Promise<{ id: str
           </div>
         </CardContent>
         <CardFooter className="flex justify-between">
-          <Button variant="outline" className="text-destructive hover:text-destructive">
-            <Trash className="mr-2 h-4 w-4" />
-            Delete
-          </Button>
-          <Button asChild>
-            <Link href={`/prompt/${prompt.id}/edit`}>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit Prompt
-            </Link>
-          </Button>
+          {user && user.id === prompt.user_id && (
+            <>
+              <Button variant="outline" className="text-destructive hover:text-destructive">
+                <Trash className="mr-2 h-4 w-4" />
+                Delete
+              </Button>
+              <Button asChild>
+                <Link href={`/prompt/${prompt.id}/edit`}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit Prompt
+                </Link>
+              </Button>
+            </>
+          )}
         </CardFooter>
       </Card>
 
