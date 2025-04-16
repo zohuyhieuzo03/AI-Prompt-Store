@@ -19,20 +19,21 @@ interface GeneratedPrompt {
   }
 }
 
-export default function GeneratedPromptPage({ params }: { params: { id: string } }) {
+export default function GeneratedPromptPage({ params }: { params: Promise<{ id: string }> }) {
   const [generatedPrompt, setGeneratedPrompt] = useState<GeneratedPrompt | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createClient()
 
   useEffect(() => {
     async function fetchGeneratedPrompt() {
+      const resolvedParams = await params
       const { data, error } = await supabase
         .from("generated_prompts")
         .select(`
           *,
           prompt:prompts(title, category)
         `)
-        .eq("id", params.id)
+        .eq("id", resolvedParams.id)
         .single()
 
       if (error) {
@@ -46,7 +47,7 @@ export default function GeneratedPromptPage({ params }: { params: { id: string }
     }
 
     fetchGeneratedPrompt()
-  }, [params.id])
+  }, [params])
 
   if (isLoading) {
     return (

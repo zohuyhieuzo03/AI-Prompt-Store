@@ -26,7 +26,7 @@ interface GeneratedPrompt {
   created_at: string
 }
 
-export default function PromptDetailPage({ params }: { params: { id: string } }) {
+export default function PromptDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [prompt, setPrompt] = useState<Prompt | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [filledPrompt, setFilledPrompt] = useState("")
@@ -36,11 +36,12 @@ export default function PromptDetailPage({ params }: { params: { id: string } })
 
   useEffect(() => {
     async function fetchData() {
+      const resolvedParams = await params
       // Fetch prompt details
       const { data: promptData, error: promptError } = await supabase
         .from("prompts")
         .select("*")
-        .eq("id", params.id)
+        .eq("id", resolvedParams.id)
         .single()
 
       if (promptError) {
@@ -55,7 +56,7 @@ export default function PromptDetailPage({ params }: { params: { id: string } })
       const { data: generatedData, error: generatedError } = await supabase
         .from("generated_prompts")
         .select("*")
-        .eq("prompt_id", params.id)
+        .eq("prompt_id", resolvedParams.id)
         .order("created_at", { ascending: false })
 
       if (generatedError) {
@@ -68,7 +69,7 @@ export default function PromptDetailPage({ params }: { params: { id: string } })
     }
 
     fetchData()
-  }, [params.id])
+  }, [params])
 
   if (isLoading) {
     return (
