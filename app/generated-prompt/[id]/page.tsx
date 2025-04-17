@@ -79,9 +79,9 @@ export default function GeneratedPromptPage({ params }: { params: Promise<{ id: 
           <div className="flex justify-between items-start">
             <div>
               <CardTitle className="text-2xl">{generatedPrompt.prompt.title}</CardTitle>
-              <CardContent className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground mt-1">
                 Generated on {format(new Date(generatedPrompt.created_at), "MMM d, yyyy 'at' h:mm a")}
-              </CardContent>
+              </p>
             </div>
           </div>
         </CardHeader>

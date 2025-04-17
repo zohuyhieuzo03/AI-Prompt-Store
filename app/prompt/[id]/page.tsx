@@ -34,6 +34,20 @@ export default function PromptDetailPage({ params }: { params: Promise<{ id: str
   const supabase = createClient()
   const { user } = useUser()
 
+  const fetchGeneratedPrompts = async (promptId: string) => {
+    const { data: generatedData, error: generatedError } = await supabase
+      .from("generated_prompts")
+      .select("*")
+      .eq("prompt_id", promptId)
+      .order("created_at", { ascending: false })
+
+    if (generatedError) {
+      console.error("Error fetching generated prompts:", generatedError)
+    } else {
+      setGeneratedPrompts(generatedData)
+    }
+  }
+
   useEffect(() => {
     async function fetchData() {
       const resolvedParams = await params
@@ -51,20 +65,7 @@ export default function PromptDetailPage({ params }: { params: Promise<{ id: str
       }
 
       setPrompt(promptData)
-
-      // Fetch generated prompts
-      const { data: generatedData, error: generatedError } = await supabase
-        .from("generated_prompts")
-        .select("*")
-        .eq("prompt_id", resolvedParams.id)
-        .order("created_at", { ascending: false })
-
-      if (generatedError) {
-        console.error("Error fetching generated prompts:", generatedError)
-      } else {
-        setGeneratedPrompts(generatedData)
-      }
-
+      await fetchGeneratedPrompts(resolvedParams.id)
       setIsLoading(false)
     }
 
@@ -113,6 +114,7 @@ export default function PromptDetailPage({ params }: { params: Promise<{ id: str
             promptContent={prompt.content}
             promptId={prompt.id}
             onFilledPromptChange={setFilledPrompt}
+            onPromptSaved={() => fetchGeneratedPrompts(prompt.id)}
           />
 
           <div>

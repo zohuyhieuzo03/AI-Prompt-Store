@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Copy, Save } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/utils/supabase/client"
 import { useUser } from "@/app/hooks/use-user"
 
@@ -13,9 +13,10 @@ interface PromptParameterFormProps {
   promptContent: string
   promptId: string
   onFilledPromptChange: (filledPrompt: string) => void
+  onPromptSaved?: () => void
 }
 
-export function PromptParameterForm({ promptContent, promptId, onFilledPromptChange }: PromptParameterFormProps) {
+export function PromptParameterForm({ promptContent, promptId, onFilledPromptChange, onPromptSaved }: PromptParameterFormProps) {
   const [parameters, setParameters] = useState<Record<string, string>>({})
   const [parameterTypes, setParameterTypes] = useState<Record<string, string>>({})
   const [parameterLines, setParameterLines] = useState<string[]>([])
@@ -111,6 +112,7 @@ export function PromptParameterForm({ promptContent, promptId, onFilledPromptCha
         title: "Success",
         description: "Prompt saved successfully",
       })
+      onPromptSaved?.()
     } catch (error) {
       console.error('Error saving prompt:', error)
       toast({
