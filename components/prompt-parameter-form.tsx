@@ -34,7 +34,7 @@ export function PromptParameterForm({ promptContent, promptId, onFilledPromptCha
     const newParameterLines: string[] = []
 
     lines.forEach(line => {
-      const match = line.match(/\[([A-Z_]+)\]\s*=\s*(.*)/)
+      const match = line.match(/\[([A-Za-z_]+)\]\s*=\s*(.*)/)
       if (match) {
         const key = match[1].toLowerCase()
         const defaultValue = match[2].trim()
@@ -65,8 +65,8 @@ export function PromptParameterForm({ promptContent, promptId, onFilledPromptCha
   useEffect(() => {
     let filledContent = promptContent
     Object.entries(parameters).forEach(([key, value]) => {
-      const regex = new RegExp(`\\[${key.toUpperCase()}\\]\\s*=\\s*.*`, 'g')
-      filledContent = filledContent.replace(regex, `[${key.toUpperCase()}] = ${value}`)
+      const regex = new RegExp(`\\[${key}\\]\\s*=\\s*.*`, 'gi')
+      filledContent = filledContent.replace(regex, `[${key}] = ${value}`)
     })
     setFilledPrompt(filledContent)
     onFilledPromptChange(filledContent)
